@@ -3,11 +3,11 @@
 
 ## Integrantes
 
-- Pedro Talma Toledo
-
 - Ana Carolina de Carvalho Corrêa
 
-- Nathan
+- Ana Flávia de Souza Ribeiro
 
-- 
+-
+
+- Pedro Talma Toledo
 
