@@ -15,21 +15,25 @@ class _LoginPageState extends State<LoginPage> {
   final _passwordController = TextEditingController();
   String? _error;
 
-  Future<void> _login() async {
-    final prefs = await SharedPreferences.getInstance();
-    final storedUser = prefs.getString('username');
-    final storedPass = prefs.getString('password');
+Future<void> _login() async {
+  final prefs = await SharedPreferences.getInstance();
+  final storedUser = prefs.getString('username');
+  final storedPass = prefs.getString('password');
+  final userType = prefs.getString('userType');
 
-    if (_usernameController.text == storedUser &&
-        _passwordController.text == storedPass) {
-      // Navega para home fictícia
-      Navigator.pushReplacementNamed(context, '/home');
-    } else {
-      setState(() {
-        _error = 'Usuário ou senha inválidos';
-      });
+  if (_usernameController.text == storedUser &&
+      _passwordController.text == storedPass) {
+    if (userType == 'cliente') {
+      Navigator.pushReplacementNamed(context, '/cliente');
+    } else if (userType == 'motorista') {
+      Navigator.pushReplacementNamed(context, '/motorista');
     }
+  } else {
+    setState(() {
+      _error = 'Usuário ou senha inválidos';
+    });
   }
+}
 
   @override
   Widget build(BuildContext context) {
