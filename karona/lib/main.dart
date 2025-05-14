@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import 'screens/cliente/home_cliente.dart';
 import 'screens/motorista/home_motorista.dart';
 import 'screens/historico_entregas.dart';
+import 'services/sincronizacao_service.dart';
+
 
 void main() {
   runApp(const EntregasApp());
@@ -70,15 +71,16 @@ class _HomePageState extends State<HomePage> {
     if (_isMotorista) {
       return const [
         HomeMotorista(),
-        Center(child: Text("Histórico (motorista)")), // substituir por tela real
+        ListaEntregasPage(),
       ];
     } else {
       return const [
         HomeCliente(),
-        Center(child: Text("Histórico (cliente)")), // substituir por tela real
+        ListaEntregasPage(),
       ];
     }
   }
+
 
   void _onItemTapped(int index) {
     setState(() => _selectedIndex = index);
