@@ -22,4 +22,3 @@ Aplicativo de entregas desenvolvido em Flutter, com interfaces separadas para **
 - **GPS (location)**
 - **Câmera**
 - **Tema escuro**
-- **Node.js (backend, separado)**
