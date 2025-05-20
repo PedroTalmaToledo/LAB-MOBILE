@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'login_page.dart';
 import 'package:provider/provider.dart';
 import '../services/theme_provider.dart';
-import 'package:karona/services/theme_provider.dart';
+import 'login_page.dart';
 
 class MotoristaHomePage extends StatefulWidget {
   const MotoristaHomePage({super.key});
@@ -13,59 +12,74 @@ class MotoristaHomePage extends StatefulWidget {
 }
 
 class _MotoristaHomePageState extends State<MotoristaHomePage> {
-  String _username = '';
+  String _username = 'Motorista';
 
   @override
   void initState() {
     super.initState();
-    _loadUsername();
+    // TODO: Carregar username via SharedPreferences ou API
   }
 
-  Future<void> _loadUsername() async {
+  void _logout() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _username = prefs.getString('username') ?? 'Motorista';
-    });
-  }
-
-  Future<void> _logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isLoggedIn', false);
-    if (context.mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const LoginPage()),
-      );
-    }
+    await prefs.clear();
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const LoginPage()),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.themeMode == ThemeMode.dark;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Área do Motorista')),
+      appBar: AppBar(
+        title: const Text('Área do Motorista'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.camera_alt),
+            onPressed: () {
+              // TODO: Capturar foto de entrega
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.map),
+            onPressed: () {
+              // TODO: Abrir mapa para navegação
+            },
+          ),
+        ],
+      ),
       drawer: Drawer(
         child: ListView(
+          padding: EdgeInsets.zero,
           children: [
-            UserAccountsDrawerHeader(
-              accountName: Text('Bem-vindo, $_username'),
-              accountEmail: const Text(''),
-              currentAccountPicture: const CircleAvatar(
-                child: Icon(Icons.person),
+            DrawerHeader(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              child: Text(
+                'Olá, $_username',
+                style: const TextStyle(color: Colors.white, fontSize: 18),
               ),
             ),
             SwitchListTile(
-              secondary: const Icon(Icons.brightness_6),
-              title: const Text('Tema Escuro'),
-              value:
-                  Provider.of<ThemeProvider>(context).themeMode ==
-                  ThemeMode.dark,
+              title: const Text('Tema escuro'),
+              value: isDark,
               onChanged: (value) {
-                Provider.of<ThemeProvider>(
-                  context,
-                  listen: false,
-                ).toggleTheme(value);
+                themeProvider.toggleTheme(value);
+              },
+              secondary: const Icon(Icons.brightness_6),
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings),
+              title: const Text('Configurações'),
+              onTap: () {
+                // TODO: Navegar para configurações
               },
             ),
+            const Divider(),
             ListTile(
               leading: const Icon(Icons.logout),
               title: const Text('Sair'),
@@ -74,7 +88,48 @@ class _MotoristaHomePageState extends State<MotoristaHomePage> {
           ],
         ),
       ),
-      body: const Center(child: Text('Tela inicial do Motorista')),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Bem-vindo, $_username',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Entregas disponíveis:',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: ListView.builder(
+                itemCount: 5, // placeholder
+                itemBuilder: (context, index) {
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    child: ListTile(
+                      leading: const Icon(Icons.delivery_dining),
+                      title: Text('Entrega #${index + 1}'),
+                      subtitle: const Text('Local: Rua Exemplo, 123'),
+                      trailing: ElevatedButton(
+                        child: const Text('Aceitar'),
+                        onPressed: () {
+                          // TODO: Lógica de aceitar entrega
+                        },
+                      ),
+                      onTap: () {
+                        // TODO: Detalhes da entrega
+                      },
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
