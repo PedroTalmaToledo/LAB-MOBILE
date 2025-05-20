@@ -1,37 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/theme_provider.dart';
+import '../services/delivery_provider.dart';
 import 'login_page.dart';
 
-class ClienteHomePage extends StatefulWidget {
+class ClienteHomePage extends StatelessWidget {
   const ClienteHomePage({super.key});
 
-  @override
-  State<ClienteHomePage> createState() => _ClienteHomePageState();
-}
-
-class _ClienteHomePageState extends State<ClienteHomePage> {
-  String _username = 'Cliente';
-
-  @override
-  void initState() {
-    super.initState();
-    // TODO: Carregar username via SharedPreferences ou API
-  }
-
-  void _logout() async {
+  void _logout(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const LoginPage()),
-    );
+    Navigator.of(context).pushReplacementNamed('/login');
   }
 
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDark = themeProvider.themeMode == ThemeMode.dark;
+    final acceptedDeliveries =
+        Provider.of<DeliveryProvider>(context).acceptedDeliveries;
 
     return Scaffold(
       appBar: AppBar(
@@ -60,7 +48,7 @@ class _ClienteHomePageState extends State<ClienteHomePage> {
                 color: Theme.of(context).colorScheme.primary,
               ),
               child: Text(
-                'Olá, $_username',
+                'Olá, Cliente',
                 style: const TextStyle(color: Colors.white, fontSize: 18),
               ),
             ),
@@ -83,7 +71,7 @@ class _ClienteHomePageState extends State<ClienteHomePage> {
             ListTile(
               leading: const Icon(Icons.logout),
               title: const Text('Sair'),
-              onTap: _logout,
+              onTap: () => _logout(context),
             ),
           ],
         ),
@@ -94,32 +82,33 @@ class _ClienteHomePageState extends State<ClienteHomePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Bem-vindo, $_username',
+              'Suas entregas aceitas:',
               style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Suas encomendas recentes:',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Expanded(
-              child: ListView.builder(
-                itemCount: 5, // placeholder
-                itemBuilder: (context, index) {
-                  return Card(
-                    margin: const EdgeInsets.symmetric(vertical: 8),
-                    child: ListTile(
-                      leading: const Icon(Icons.local_shipping),
-                      title: Text('Encomenda #${index + 1}'),
-                      subtitle: const Text('Status: Em trânsito'),
-                      onTap: () {
-                        // TODO: Detalhes da encomenda
+              child: acceptedDeliveries.isEmpty
+                  ? const Center(
+                      child: Text('Nenhuma entrega aceita ainda.'),
+                    )
+                  : ListView.builder(
+                      itemCount: acceptedDeliveries.length,
+                      itemBuilder: (context, index) {
+                        final delivery = acceptedDeliveries[index];
+                        return Card(
+                          margin: const EdgeInsets.symmetric(vertical: 8),
+                          child: ListTile(
+                            leading: const Icon(
+                              Icons.check_circle,
+                              color: Colors.green,
+                            ),
+                            title: Text('Entrega #${delivery['id']}'),
+                            subtitle:
+                                Text('Local: ${delivery['address']}'),
+                          ),
+                        );
                       },
                     ),
-                  );
-                },
-              ),
             ),
           ],
         ),
