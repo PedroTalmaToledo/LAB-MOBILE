@@ -2,36 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import '../services/theme_provider.dart';
+import '../services/delivery_provider.dart';
 import 'login_page.dart';
 
-class MotoristaHomePage extends StatefulWidget {
+class MotoristaHomePage extends StatelessWidget {
   const MotoristaHomePage({super.key});
 
-  @override
-  State<MotoristaHomePage> createState() => _MotoristaHomePageState();
-}
-
-class _MotoristaHomePageState extends State<MotoristaHomePage> {
-  String _username = 'Motorista';
-
-  @override
-  void initState() {
-    super.initState();
-    // TODO: Carregar username via SharedPreferences ou API
-  }
-
-  void _logout() async {
+  void _logout(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const LoginPage()),
-    );
+    Navigator.of(context).pushReplacementNamed('/login');
   }
 
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDark = themeProvider.themeMode == ThemeMode.dark;
+    final deliveryProvider = Provider.of<DeliveryProvider>(context);
+    final deliveries = deliveryProvider.allDeliveries;
 
     return Scaffold(
       appBar: AppBar(
@@ -60,7 +48,7 @@ class _MotoristaHomePageState extends State<MotoristaHomePage> {
                 color: Theme.of(context).colorScheme.primary,
               ),
               child: Text(
-                'Olá, $_username',
+                'Olá, Motorista',
                 style: const TextStyle(color: Colors.white, fontSize: 18),
               ),
             ),
@@ -83,7 +71,7 @@ class _MotoristaHomePageState extends State<MotoristaHomePage> {
             ListTile(
               leading: const Icon(Icons.logout),
               title: const Text('Sair'),
-              onTap: _logout,
+              onTap: () => _logout(context),
             ),
           ],
         ),
@@ -94,34 +82,36 @@ class _MotoristaHomePageState extends State<MotoristaHomePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Bem-vindo, $_username',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 16),
-            const Text(
               'Entregas disponíveis:',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 8),
             Expanded(
               child: ListView.builder(
-                itemCount: 5, // placeholder
+                itemCount: deliveries.length,
                 itemBuilder: (context, index) {
+                  final delivery = deliveries[index];
+                  final accepted = delivery['status'] == 'Aceito';
                   return Card(
                     margin: const EdgeInsets.symmetric(vertical: 8),
                     child: ListTile(
                       leading: const Icon(Icons.delivery_dining),
-                      title: Text('Entrega #${index + 1}'),
-                      subtitle: const Text('Local: Rua Exemplo, 123'),
-                      trailing: ElevatedButton(
-                        child: const Text('Aceitar'),
-                        onPressed: () {
-                          // TODO: Lógica de aceitar entrega
-                        },
+                      title: Text('Entrega #${delivery['id']}'),
+                      subtitle: Text(
+                        'Local: ${delivery['address']}\n'
+                        'Status: ${delivery['status']}',
                       ),
-                      onTap: () {
-                        // TODO: Detalhes da entrega
-                      },
+                      trailing: accepted
+                          ? const Text(
+                              'Aceito',
+                              style: TextStyle(color: Colors.green),
+                            )
+                          : ElevatedButton(
+                              child: const Text('Aceitar'),
+                              onPressed: () => deliveryProvider.acceptDelivery(
+                                delivery['id'] as int,
+                              ),
+                            ),
                     ),
                   );
                 },
