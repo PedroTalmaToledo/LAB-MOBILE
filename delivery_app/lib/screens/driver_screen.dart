@@ -4,7 +4,9 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:camera/camera.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../database/delivery_database.dart';
+import '../services/notification_service.dart';
 import 'take_picture_screen.dart';
 
 class DriverScreen extends StatefulWidget {
@@ -95,6 +97,8 @@ class _DriverScreenState extends State<DriverScreen> {
   Future<void> _finalizarEntrega(Map<String, dynamic> entrega) async {
     if (!_cameraReady) return;
 
+    final notificacoes = Provider.of<NotificationService>(context, listen: false);
+
     final foto = await Navigator.push<File?>(
       context,
       MaterialPageRoute(builder: (_) => TakePictureScreen(camera: _camera)),
@@ -120,6 +124,8 @@ class _DriverScreenState extends State<DriverScreen> {
         lng: atualizado['lng'],
       );
 
+      notificacoes.mostrar('Entrega para ${entrega['cliente']} foi concluída.');
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Entrega finalizada com sucesso!')),
       );
@@ -127,6 +133,7 @@ class _DriverScreenState extends State<DriverScreen> {
       await _carregarEntregasDoBanco();
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

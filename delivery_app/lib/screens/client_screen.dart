@@ -113,17 +113,7 @@ class _ClientScreenState extends State<ClientScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final notif = Provider.of<NotificationService>(context);
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (notif.mensagem != null) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(notif.mensagem!),
-          duration: const Duration(seconds: 3),
-        ));
-        notif.limpar();
-      }
-    });
+    final notificacoes = Provider.of<NotificationService>(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -144,9 +134,21 @@ class _ClientScreenState extends State<ClientScreen> {
         icon: const Icon(Icons.add),
         label: const Text("Novo Pedido"),
       ),
-      body: _entregas.isEmpty
-          ? const Center(child: Text('Nenhum pedido criado ainda.'))
-          : ListView.builder(
+      body: Column(
+        children: [
+          if (notificacoes.mensagem != null)
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.notifications),
+                label: Text(notificacoes.mensagem!),
+                onPressed: () => notificacoes.limpar(),
+              ),
+            ),
+          Expanded(
+            child: _entregas.isEmpty
+                ? const Center(child: Text('Nenhum pedido criado ainda.'))
+                : ListView.builder(
               itemCount: _entregas.length,
               itemBuilder: (context, index) {
                 final e = _entregas[index];
@@ -154,8 +156,8 @@ class _ClientScreenState extends State<ClientScreen> {
                 final cor = status == 'Entregue'
                     ? Colors.green
                     : status == 'Saiu para entrega'
-                        ? Colors.orange
-                        : Colors.grey;
+                    ? Colors.orange
+                    : Colors.grey;
                 final local = e['localizacao'] ?? '';
 
                 return Card(
@@ -173,41 +175,19 @@ class _ClientScreenState extends State<ClientScreen> {
                     ),
                     trailing: local.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.map),
-                            tooltip: 'Ver no mapa',
-                            onPressed: () => _abrirMapa(local),
-                          )
+                      icon: const Icon(Icons.map),
+                      tooltip: 'Ver no mapa',
+                      onPressed: () => _abrirMapa(local),
+                    )
                         : null,
-                    onTap: () {
-                      showDialog(
-                        context: context,
-                        builder: (_) {
-                          return AlertDialog(
-                            title: Text(e['cliente']),
-                            content: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Descrição: ${e['descricao']}'),
-                                Text('Endereço: ${e['endereco']}'),
-                                Text('Status: ${e['status']}'),
-                                Text('Data: ${e['data']}'),
-                              ],
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: const Text('Fechar'),
-                              ),
-                            ],
-                          );
-                        },
-                      );
-                    },
                   ),
                 );
               },
             ),
+          ),
+        ],
+      ),
     );
   }
+
 }
