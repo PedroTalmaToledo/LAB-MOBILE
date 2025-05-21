@@ -80,7 +80,9 @@ class _DriverScreenState extends State<DriverScreen> {
   Future<void> _aceitarEntrega(Map<String, dynamic> entrega) async {
     final atualizado = Map<String, dynamic>.from(entrega);
     atualizado['status'] = 'Saiu para entrega';
+
     await DeliveryDatabase.salvarEntrega(
+      id: atualizado['id'], // ESSENCIAL
       cliente: atualizado['cliente'],
       endereco: atualizado['endereco'],
       descricao: atualizado['descricao'],
@@ -91,6 +93,7 @@ class _DriverScreenState extends State<DriverScreen> {
       lat: atualizado['lat'],
       lng: atualizado['lng'],
     );
+
     await _carregarEntregasDoBanco();
   }
 
@@ -113,6 +116,7 @@ class _DriverScreenState extends State<DriverScreen> {
       atualizado['data'] = DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now());
 
       await DeliveryDatabase.salvarEntrega(
+        id: atualizado['id'], // ESSENCIAL
         cliente: atualizado['cliente'],
         endereco: atualizado['endereco'],
         descricao: atualizado['descricao'],
@@ -133,7 +137,6 @@ class _DriverScreenState extends State<DriverScreen> {
       await _carregarEntregasDoBanco();
     }
   }
-
 
   @override
   Widget build(BuildContext context) {

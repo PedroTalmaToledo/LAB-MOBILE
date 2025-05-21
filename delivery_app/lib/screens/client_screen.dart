@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../database/delivery_database.dart';
 import '../services/notification_service.dart';
+import 'client_history_screen.dart';
 
 class ClientScreen extends StatefulWidget {
   const ClientScreen({super.key});
@@ -25,9 +26,10 @@ class _ClientScreenState extends State<ClientScreen> {
 
   Future<void> _carregarEntregas() async {
     final dados = await DeliveryDatabase.listarEntregas();
+    final ativos = dados.where((e) => e['status'] != 'Entregue').toList();
     final ids = <String, Map<String, dynamic>>{};
 
-    for (var e in dados) {
+    for (var e in ativos) {
       final key = '${e['cliente']}_${e['descricao']}';
       if (!ids.containsKey(key) || e['id'] > ids[key]!['id']) {
         ids[key] = e;
@@ -120,8 +122,14 @@ class _ClientScreenState extends State<ClientScreen> {
         title: const Text('Área do Cliente'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _carregarEntregas,
+            icon: const Icon(Icons.history),
+            tooltip: 'Histórico de Entregas',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ClientHistoryScreen()),
+              );
+            },
           ),
           IconButton(
             icon: const Icon(Icons.logout),
@@ -147,47 +155,44 @@ class _ClientScreenState extends State<ClientScreen> {
             ),
           Expanded(
             child: _entregas.isEmpty
-                ? const Center(child: Text('Nenhum pedido criado ainda.'))
+                ? const Center(child: Text('Nenhum pedido ativo.'))
                 : ListView.builder(
-              itemCount: _entregas.length,
-              itemBuilder: (context, index) {
-                final e = _entregas[index];
-                final status = e['status'] as String;
-                final cor = status == 'Entregue'
-                    ? Colors.green
-                    : status == 'Saiu para entrega'
-                    ? Colors.orange
-                    : Colors.grey;
-                final local = e['localizacao'] ?? '';
+                    itemCount: _entregas.length,
+                    itemBuilder: (context, index) {
+                      final e = _entregas[index];
+                      final status = e['status'] as String;
+                      final cor = status == 'Saiu para entrega'
+                          ? Colors.orange
+                          : Colors.grey;
+                      final local = e['localizacao'] ?? '';
 
-                return Card(
-                  color: Colors.purple.shade50,
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: ListTile(
-                    leading: Icon(Icons.inventory_2, color: cor),
-                    title: Text(e['cliente']),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('${e['descricao']}'),
-                        Text('Status: $status'),
-                      ],
-                    ),
-                    trailing: local.isNotEmpty
-                        ? IconButton(
-                      icon: const Icon(Icons.map),
-                      tooltip: 'Ver no mapa',
-                      onPressed: () => _abrirMapa(local),
-                    )
-                        : null,
+                      return Card(
+                        color: Colors.purple.shade50,
+                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: ListTile(
+                          leading: Icon(Icons.inventory_2, color: cor),
+                          title: Text(e['cliente']),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('${e['descricao']}'),
+                              Text('Status: $status'),
+                            ],
+                          ),
+                          trailing: local.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.map),
+                                  tooltip: 'Ver no mapa',
+                                  onPressed: () => _abrirMapa(local),
+                                )
+                              : null,
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
           ),
         ],
       ),
     );
   }
-
 }
