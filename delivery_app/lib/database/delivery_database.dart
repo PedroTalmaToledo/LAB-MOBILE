@@ -26,7 +26,7 @@ class DeliveryDatabase {
 
     _db = await openDatabase(
       path,
-      version: 3, // Atualize a versão sempre que quiser forçar a recriação
+      version: 7, // Atualize a versão sempre que quiser forçar a recriação
       onCreate: (db, version) async {
         await db.execute(_criarTabelaSQL);
       },
