@@ -2,8 +2,9 @@
 
 Este projeto é um microserviço em Spring Boot para o gerenciamento do ciclo de vida de pedidos, com persistência em PostgreSQL e documentação via Swagger.
 
----
+[Vídeo Explicando Sobre o Projeto](https://github.com/PedroTalmaToledo/LAB-MOBILE/blob/main/crud_pedidos/Video_CRUD_Pedidos.mkv)
 
+---
 ## 🚀 Funcionalidades
 
 - Criar novos pedidos
