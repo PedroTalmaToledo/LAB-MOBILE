@@ -39,7 +39,15 @@ Este projeto é um microserviço em Spring Boot para o gerenciamento do ciclo de
 
 ## ⚙️ Configuração do Banco de Dados
 
-Certifique-se de que o PostgreSQL esteja rodando localmente. As configurações estão no arquivo `src/main/resources/application.properties`:
+Criar um banco de dados PostgreSQL, certificar que está rodando localmente e configurar o arquivo `src/main/resources/application.properties`:
+
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/pedidos
+spring.datasource.username={seu_usuario}
+spring.datasource.password={sua_senha}
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+```
 
 > O Flyway será executado automaticamente ao iniciar a aplicação.
 
