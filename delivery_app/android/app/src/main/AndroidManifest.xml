@@ -3,15 +3,15 @@
 
     <!-- Permissões -->
     <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.CAMERA"/>
 
     <application
         android:name="${applicationName}"
         android:label="delivery_app"
         android:icon="@mipmap/ic_launcher">
-        
+
         <!-- API do Google Maps -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
