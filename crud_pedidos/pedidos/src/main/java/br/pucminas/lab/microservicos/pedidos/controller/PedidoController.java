@@ -43,29 +43,83 @@ public class PedidoController {
     }
 
     @GetMapping
+    @Operation(
+            summary = "Listar Todos os Pedidos",
+            description = "Listar Todos os Pedidos.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Pedidos filtrados com sucesso",
+                            content = @Content(schema = @Schema(implementation = Pedido.class))),
+                    @ApiResponse(responseCode = "400", description = "Dados inválidos")
+            }
+    )
     public List<Pedido> listarTodos() { return service.buscarTodos(); }
 
     @GetMapping("/{id}")
+    @Operation(
+            summary = "Buscar Pedisos por ID",
+            description = "Buscar Pedisos por ID.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Pedidos encontrado",
+                            content = @Content(schema = @Schema(implementation = Pedido.class))),
+                    @ApiResponse(responseCode = "400", description = "Dados inválidos")
+            }
+    )
     public Pedido buscarPorId(@Parameter(description = "ID do pedido") @PathVariable Long id) {
         return service.buscarPorId(id);
     }
 
     @GetMapping("/cliente/{cliente}")
+    @Operation(
+            summary = "Buscar Pedisos por Cliente",
+            description = "Buscar Pedisos por Cliente.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Pedidos encontrado",
+                            content = @Content(schema = @Schema(implementation = Pedido.class))),
+                    @ApiResponse(responseCode = "400", description = "Dados inválidos")
+            }
+    )
     public List<Pedido> buscarPorCliente(@PathVariable String cliente) {
         return service.buscarPorCliente(cliente);
     }
 
     @GetMapping("/status/{status}")
+    @Operation(
+            summary = "Buscar Pedidos por Status",
+            description = "Buscar Pedisos por Status.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Pedidos encontrado",
+                            content = @Content(schema = @Schema(implementation = Pedido.class))),
+                    @ApiResponse(responseCode = "400", description = "Dados inválidos")
+            }
+    )
     public List<Pedido> buscarPorStatus(@PathVariable StatusPedido status) {
         return service.buscarPorStatus(status);
     }
 
     @PutMapping("/{id}/status")
+    @Operation(
+            summary = "Atualizar Status do Pedido",
+            description = "Atualizar Status do Pedido.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Status do Pedidos Atualizado com sucesso",
+                            content = @Content(schema = @Schema(implementation = Pedido.class))),
+                    @ApiResponse(responseCode = "400", description = "Dados inválidos")
+            }
+    )
     public Pedido atualizarStatus(@PathVariable Long id, @RequestParam StatusPedido status) {
         return service.atualizarStatus(id, status);
     }
 
     @DeleteMapping("/{id}")
+    @Operation(
+            summary = "Deletar Pedido",
+            description = "Deletar Pedido.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Pedido Deletado com sucesso",
+                            content = @Content(schema = @Schema(implementation = Pedido.class))),
+                    @ApiResponse(responseCode = "400", description = "Dados inválidos")
+            }
+    )
     public void deletar(@PathVariable Long id) {
         service.deletarPedido(id);
     }
