@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../database/delivery_database.dart';
+import '../models/pedido.dart';
+import '../services/delivery_service.dart';
 
 class EntregasRealizadasScreen extends StatefulWidget {
   const EntregasRealizadasScreen({super.key});
@@ -10,7 +11,7 @@ class EntregasRealizadasScreen extends StatefulWidget {
 }
 
 class _EntregasRealizadasScreenState extends State<EntregasRealizadasScreen> {
-  List<Map<String, dynamic>> entregas = [];
+  List<Pedido> entregas = [];
 
   @override
   void initState() {
@@ -19,10 +20,16 @@ class _EntregasRealizadasScreenState extends State<EntregasRealizadasScreen> {
   }
 
   Future<void> _carregarEntregas() async {
-    final lista = await DeliveryDatabase.listarEntregas();
-    setState(() {
-      entregas = lista.where((e) => e['status'] == 'Entregue').toList();
-    });
+    try {
+      final pedidos = await DeliveryService().listarPedidos();
+      setState(() {
+        entregas = pedidos.where((p) => p.status == 'ENTREGUE').toList();
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao carregar entregas: $e')),
+      );
+    }
   }
 
   @override
@@ -44,24 +51,14 @@ class _EntregasRealizadasScreenState extends State<EntregasRealizadasScreen> {
                   margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   elevation: 3,
                   child: ListTile(
-                    leading: e['foto'] != null && e['foto'].toString().isNotEmpty
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: Image.file(
-                              File(e['foto']),
-                              width: 50,
-                              height: 50,
-                              fit: BoxFit.cover,
-                            ),
-                          )
-                        : const Icon(Icons.image_not_supported, size: 40),
-                    title: Text(e['cliente']),
+                    leading: const Icon(Icons.check_circle, size: 40, color: Colors.green),
+                    title: Text(e.cliente),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Pedido: ${e['descricao']}'),
-                        Text('Endereço: ${e['endereco']}'),
-                        Text('Data: ${e['data']}'),
+                        Text('Tipo: ${e.tipoMercadoria}'),
+                        Text('Origem: ${e.origem}'),
+                        Text('Destino: ${e.destino}'),
                       ],
                     ),
                     isThreeLine: true,

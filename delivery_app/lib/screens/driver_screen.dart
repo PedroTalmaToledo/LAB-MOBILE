@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:camera/camera.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../database/delivery_database.dart';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
+
+import '../models/pedido.dart';
+import '../services/delivery_service.dart';
+import '../services/tracking_service.dart';
 import '../services/notification_service.dart';
 import 'take_picture_screen.dart';
 
@@ -20,7 +23,9 @@ class _DriverScreenState extends State<DriverScreen> {
   GoogleMapController? _mapController;
   Position? _currentPosition;
   Set<Marker> _markers = {};
-  List<Map<String, dynamic>> _entregas = [];
+  Set<Polyline> _polylines = {};
+  PolylinePoints polylinePoints = PolylinePoints();
+  List<Pedido> _entregas = [];
   late CameraDescription _camera;
   bool _cameraReady = false;
 
@@ -29,78 +34,115 @@ class _DriverScreenState extends State<DriverScreen> {
     super.initState();
     _initCamera();
     _getLocation();
-    _carregarEntregasDoBanco();
+    _carregarPedidos();
   }
 
   Future<void> _initCamera() async {
-    final cameras = await availableCameras();
-    _camera = cameras.first;
-    setState(() => _cameraReady = true);
+    try {
+      final cameras = await availableCameras();
+      _camera = cameras.first;
+      setState(() => _cameraReady = true);
+    } catch (e) {
+      debugPrint('Erro ao inicializar a câmera: $e');
+    }
   }
 
   Future<void> _getLocation() async {
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) return;
-    }
-    if (permission == LocationPermission.deniedForever) return;
-    final pos = await Geolocator.getCurrentPosition();
-    setState(() => _currentPosition = pos);
-  }
-
-  Future<void> _carregarEntregasDoBanco() async {
-    final entregas = await DeliveryDatabase.listarEntregas();
-    final ids = <String>{};
-    final filtradas = <Map<String, dynamic>>[];
-
-    for (var e in entregas) {
-      final key = '${e['cliente']}_${e['descricao']}';
-      if (!ids.contains(key)) {
-        ids.add(key);
-        filtradas.add(e);
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          _showSnackbar('Permissão de localização negada.');
+          return;
+        }
       }
+      if (permission == LocationPermission.deniedForever) {
+        _showSnackbar('Permissão de localização negada permanentemente.');
+        return;
+      }
+      final pos = await Geolocator.getCurrentPosition();
+      setState(() => _currentPosition = pos);
+    } catch (e) {
+      debugPrint('Erro ao obter localização: $e');
+    }
+  }
+
+  Future<void> _carregarPedidos() async {
+    try {
+      final todos = await DeliveryService().listarPedidos();
+      final ativos = todos
+          .where((p) => p.status != 'ENTREGUE' && p.status != 'CANCELADO')
+          .toList();
+
+      setState(() {
+        _entregas = ativos;
+        _markers = ativos.map((p) {
+          return Marker(
+            markerId: MarkerId(p.id.toString()),
+            position: LatLng(_currentPosition?.latitude ?? 0.0,
+                _currentPosition?.longitude ?? 0.0),
+            infoWindow:
+                InfoWindow(title: p.cliente, snippet: p.tipoMercadoria),
+          );
+        }).toSet();
+      });
+    } catch (e) {
+      debugPrint('Erro ao carregar pedidos: $e');
+      _showSnackbar('Erro ao carregar pedidos.');
+    }
+  }
+
+  Future<void> _aceitarEntrega(Pedido pedido) async {
+    try {
+      final pos = await Geolocator.getCurrentPosition();
+
+      await TrackingService().enviarLocalizacao(
+        deliveryId: pedido.id.toString(),
+        driverId: 'motorista_demo',
+        latitude: pos.latitude,
+        longitude: pos.longitude,
+      );
+
+      await DeliveryService().atualizarStatus(pedido.id!, 'EM_PROCESSAMENTO');
+      _showSnackbar('Entrega de ${pedido.cliente} aceita.');
+
+      // Obter rota otimizada com proteção contra travamento
+      try {
+        final pontos = await DeliveryService()
+            .obterRota(pedido.origem, pedido.destino)
+            .timeout(const Duration(seconds: 10));
+
+        if (pontos.isNotEmpty) {
+          final polyline = Polyline(
+            polylineId: PolylineId("rota_${pedido.id}"),
+            color: Colors.blue,
+            width: 4,
+            points: pontos,
+          );
+          setState(() {
+            _polylines = {polyline};
+          });
+        }
+      } catch (e) {
+        debugPrint('Erro ao buscar rota otimizada: $e');
+        _showSnackbar('Falha ao obter rota, mas entrega foi aceita.');
+      }
+
+      await _carregarPedidos();
+    } catch (e) {
+      _showSnackbar('Erro ao aceitar entrega: $e');
+    }
+  }
+
+  Future<void> _finalizarEntrega(Pedido pedido) async {
+    if (!_cameraReady) {
+      _showSnackbar('Câmera ainda não está pronta.');
+      return;
     }
 
-    setState(() {
-      _entregas = filtradas.where((e) => e['status'] != 'Entregue').toList();
-      _markers = _entregas.map((e) {
-        return Marker(
-          markerId: MarkerId(e['id'].toString()),
-          position: LatLng(e['lat'] ?? _currentPosition?.latitude ?? 0.0,
-              e['lng'] ?? _currentPosition?.longitude ?? 0.0),
-          infoWindow: InfoWindow(
-              title: e['cliente'] as String,
-              snippet: e['descricao'] as String),
-        );
-      }).toSet();
-    });
-  }
-
-  Future<void> _aceitarEntrega(Map<String, dynamic> entrega) async {
-    final atualizado = Map<String, dynamic>.from(entrega);
-    atualizado['status'] = 'Saiu para entrega';
-
-    await DeliveryDatabase.salvarEntrega(
-      id: atualizado['id'], // ESSENCIAL
-      cliente: atualizado['cliente'],
-      endereco: atualizado['endereco'],
-      descricao: atualizado['descricao'],
-      status: atualizado['status'],
-      foto: atualizado['foto'],
-      data: atualizado['data'],
-      localizacao: atualizado['localizacao'],
-      lat: atualizado['lat'],
-      lng: atualizado['lng'],
-    );
-
-    await _carregarEntregasDoBanco();
-  }
-
-  Future<void> _finalizarEntrega(Map<String, dynamic> entrega) async {
-    if (!_cameraReady) return;
-
-    final notificacoes = Provider.of<NotificationService>(context, listen: false);
+    final notificacoes =
+        Provider.of<NotificationService>(context, listen: false);
 
     final foto = await Navigator.push<File?>(
       context,
@@ -108,34 +150,28 @@ class _DriverScreenState extends State<DriverScreen> {
     );
 
     if (foto != null) {
-      final pos = await Geolocator.getCurrentPosition();
-      final atualizado = Map<String, dynamic>.from(entrega);
-      atualizado['status'] = 'Entregue';
-      atualizado['foto'] = foto.path;
-      atualizado['localizacao'] = '${pos.latitude}, ${pos.longitude}';
-      atualizado['data'] = DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now());
+      try {
+        final pos = await Geolocator.getCurrentPosition();
+        await TrackingService().enviarLocalizacao(
+          deliveryId: pedido.id.toString(),
+          driverId: 'motorista_demo',
+          latitude: pos.latitude,
+          longitude: pos.longitude,
+        );
+        await DeliveryService().atualizarStatus(pedido.id!, 'ENTREGUE');
 
-      await DeliveryDatabase.salvarEntrega(
-        id: atualizado['id'], // ESSENCIAL
-        cliente: atualizado['cliente'],
-        endereco: atualizado['endereco'],
-        descricao: atualizado['descricao'],
-        status: atualizado['status'],
-        foto: atualizado['foto'],
-        data: atualizado['data'],
-        localizacao: atualizado['localizacao'],
-        lat: atualizado['lat'],
-        lng: atualizado['lng'],
-      );
-
-      notificacoes.mostrar('Entrega para ${entrega['cliente']} foi concluída.');
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Entrega finalizada com sucesso!')),
-      );
-
-      await _carregarEntregasDoBanco();
+        notificacoes.mostrar('Entrega para ${pedido.cliente} foi concluída.');
+        _showSnackbar('Entrega finalizada com sucesso!');
+        await _carregarPedidos();
+      } catch (e) {
+        _showSnackbar('Erro ao finalizar entrega: $e');
+      }
     }
+  }
+
+  void _showSnackbar(String mensagem) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(mensagem)));
   }
 
   @override
@@ -150,7 +186,7 @@ class _DriverScreenState extends State<DriverScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pushReplacementNamed(context, '/'),
           )
         ],
       ),
@@ -162,15 +198,14 @@ class _DriverScreenState extends State<DriverScreen> {
                   flex: 1,
                   child: GoogleMap(
                     initialCameraPosition: CameraPosition(
-                      target: LatLng(
-                        _currentPosition!.latitude,
-                        _currentPosition!.longitude,
-                      ),
+                      target: LatLng(_currentPosition!.latitude,
+                          _currentPosition!.longitude),
                       zoom: 15,
                     ),
                     onMapCreated: (controller) => _mapController = controller,
                     myLocationEnabled: true,
                     markers: _markers,
+                    polylines: _polylines,
                   ),
                 ),
                 Expanded(
@@ -179,24 +214,30 @@ class _DriverScreenState extends State<DriverScreen> {
                     itemCount: _entregas.length,
                     itemBuilder: (context, index) {
                       final entrega = _entregas[index];
-                      final status = entrega['status'] as String;
                       return Card(
                         margin: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 8),
                         child: ListTile(
-                          title: Text(entrega['cliente']),
+                          title: Text(entrega.cliente),
                           subtitle: Text(
-                              '${entrega['descricao']}\nStatus: $status'),
+                              '${entrega.tipoMercadoria}\nStatus: ${entrega.status}'),
                           isThreeLine: true,
-                          trailing: status == 'Pendente'
-                              ? TextButton(
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (entrega.status == 'ENVIADO')
+                                TextButton(
                                   onPressed: () => _aceitarEntrega(entrega),
                                   child: const Text('Aceitar'),
-                                )
-                              : TextButton(
-                                  onPressed: () => _finalizarEntrega(entrega),
+                                ),
+                              if (entrega.status == 'EM_PROCESSAMENTO')
+                                TextButton(
+                                  onPressed: () =>
+                                      _finalizarEntrega(entrega),
                                   child: const Text('Finalizar'),
                                 ),
+                            ],
+                          ),
                         ),
                       );
                     },

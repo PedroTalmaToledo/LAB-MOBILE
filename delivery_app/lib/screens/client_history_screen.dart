@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../database/delivery_database.dart';
+import '../models/pedido.dart';
+import '../services/delivery_service.dart';
+import '../services/tracking_service.dart';
 
 class ClientHistoryScreen extends StatelessWidget {
   const ClientHistoryScreen({super.key});
 
-  Future<List<Map<String, dynamic>>> _carregarHistorico() async {
-    final entregas = await DeliveryDatabase.listarEntregas();
-    return entregas.where((e) => e['status'] == 'Entregue').toList();
+  Future<List<Pedido>> _carregarHistorico() async {
+    final pedidos = await DeliveryService().listarPedidos();
+    return pedidos.where((p) => p.status == 'ENTREGUE').toList();
   }
 
-  Future<void> _mostrarDetalhes(BuildContext context, Map<String, dynamic> entrega) async {
-    final local = entrega['localizacao'] ?? '';
-    final podeVerMapa = local.contains(',');
+  Future<void> _mostrarDetalhes(BuildContext context, Pedido pedido) async {
+    final endereco = pedido.destino;
+    final url = Uri.parse("https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(endereco)}");
 
     showDialog(
       context: context,
@@ -23,31 +25,50 @@ class ClientHistoryScreen extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("Cliente: ${entrega['cliente']}"),
-              Text("Endereço: ${entrega['endereco']}"),
-              Text("Descrição: ${entrega['descricao']}"),
-              Text("Data: ${entrega['data']}"),
-              if (podeVerMapa)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.map),
-                    label: const Text("Ver no mapa"),
-                    onPressed: () async {
-                      final partes = local.split(',');
-                      final lat = partes[0].trim();
-                      final lng = partes[1].trim();
-                      final url = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lng");
-                      if (await canLaunchUrl(url)) {
-                        await launchUrl(url);
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Não foi possível abrir o mapa.')),
-                        );
-                      }
-                    },
-                  ),
-                ),
+              Text("Cliente: ${pedido.cliente}"),
+              Text("Origem: ${pedido.origem}"),
+              Text("Destino: ${pedido.destino}"),
+              Text("Tipo: ${pedido.tipoMercadoria}"),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.map),
+                label: const Text("Ver Destino no Mapa"),
+                onPressed: () async {
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Não foi possível abrir o mapa.')),
+                    );
+                  }
+                },
+              ),
+              const SizedBox(height: 8),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.location_history),
+                label: const Text("Última Localização do Motorista"),
+                onPressed: () async {
+                  final dados = await TrackingService().buscarUltimaLocalizacao(pedido.id.toString());
+
+                  if (dados != null && dados['latitude'] != null && dados['longitude'] != null) {
+                    final lat = dados['latitude'];
+                    final lon = dados['longitude'];
+                    final rastreioUrl = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lon");
+
+                    if (await canLaunchUrl(rastreioUrl)) {
+                      await launchUrl(rastreioUrl);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Não foi possível abrir a última localização.')),
+                      );
+                    }
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Localização indisponível.')),
+                    );
+                  }
+                },
+              ),
             ],
           ),
           actions: [
@@ -65,7 +86,7 @@ class ClientHistoryScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Histórico de Entregas")),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
+      body: FutureBuilder<List<Pedido>>(
         future: _carregarHistorico(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
@@ -78,8 +99,8 @@ class ClientHistoryScreen extends StatelessWidget {
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: ListTile(
-                  title: Text(e['descricao']),
-                  subtitle: Text("Cliente: ${e['cliente']}"),
+                  title: Text(e.tipoMercadoria),
+                  subtitle: Text("Cliente: ${e.cliente}"),
                   trailing: const Text("✅ Entregue"),
                   onTap: () => _mostrarDetalhes(context, e),
                 ),
