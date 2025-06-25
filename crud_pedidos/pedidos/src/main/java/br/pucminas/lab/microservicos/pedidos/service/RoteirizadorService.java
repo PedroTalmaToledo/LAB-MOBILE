@@ -1,5 +1,6 @@
 package br.pucminas.lab.microservicos.pedidos.service;
 
+import br.pucminas.lab.microservicos.pedidos.model.Coordenada;
 import br.pucminas.lab.microservicos.response.NominatimResponse;
 import br.pucminas.lab.microservicos.response.RotaResponse;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -58,10 +59,11 @@ public class RoteirizadorService {
             throw new RuntimeException("Erro ao consultar Nominatim: " + endereco, e);
         }
     }
+
     /**
      * Calcula rota entre duas coordenadas usando OSRM.
      */
-public RotaResponse calcularRota(double origemLat, double origemLon, double destinoLat, double destinoLon) {
+    public RotaResponse calcularRota(double origemLat, double origemLon, double destinoLat, double destinoLon) {
         String coords = String.format(Locale.US, "%f,%f;%f,%f", origemLon, origemLat, destinoLon, destinoLat);
         String url = String.format("%s/%s?overview=full&geometries=geojson", OSRM_BASE_URL, coords);
         System.out.println("Requisição OSRM: " + url);
