@@ -1,0 +1,57 @@
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+# Evita conflitos no Windows
+pubspec.lock
+
+# IntelliJ / Android Studio
+*.iml
+.idea/
+*.ipr
+*.iws
+.gradle/
+local.properties
+
+# VS Code
+.vscode/
+
+# Generated files
+**/GeneratedPluginRegistrant.*
+**/*.g.dart
+
+# Android
+.android/
+app/*.keystore
+**/app-debug.keystore
+
+# iOS
+**/IOS/Flutter/Flutter.podspec
+ios/Pods/
+ios/Podfile.lock
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/ServiceDefinitions.json
+Generated.xcconfig
+xcuserdata/
+
+# Xcode
+*.xcuserstate
+*.xcworkspace
+*.xcodeproj/project.xcworkspace/
+DerivedData/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+
+# Misc
+*.log
+*.lock
+.DS_Store

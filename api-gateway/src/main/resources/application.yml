@@ -1,0 +1,33 @@
+server:
+  port: 8000
+
+spring:
+  cloud:
+    gateway:
+      default-filters:
+        - AddResponseHeader=X-Processed-By, API-Gateway
+      routes:
+        - id: auth-service
+          uri: http://localhost:5001
+          predicates:
+            - Path=/auth/**
+
+        - id: pedidos
+          uri: http://localhost:8080
+          predicates:
+            - Path=/pedidos/**
+
+        - id: rastreamento
+          uri: http://localhost:5002
+          predicates:
+            - Path=/rastreamento/**
+
+        - id: notificacoes
+          uri: http://localhost:8084
+          predicates:
+            - Path=/notificacoes/**
+          filters:
+            - StripPrefix=1 
+
+jwt:
+  secret: MinhaChaveUltraMegaSecreta123456789!@#
