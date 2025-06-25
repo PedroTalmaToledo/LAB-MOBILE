@@ -2,16 +2,29 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const morgan = require('morgan');
+const cors = require('cors');
 const trackingRoutes = require('./routes/trackingRoutes');
 
 const app = express();
+
+// Middleware para habilitar CORS (resolve erro de conexão com Flutter/Front)
+app.use(cors());
+
+// Middleware para logar requisições HTTP
 app.use(morgan('dev'));
+
+// Log personalizado para debug (exibe método e rota)
+app.use((req, res, next) => {
+  console.log(`[${req.method}] ${req.originalUrl}`);
+  next();
+});
+
+// Middleware para ler JSON do body
 app.use(express.json());
 
-// Mount tracking routes
-app.use('/tracking', trackingRoutes);
+app.use('/rastreamento', trackingRoutes);
 
-// Connect to MongoDB and start server
+// Conexão com MongoDB e inicialização do servidor
 const PORT = process.env.PORT || 5002;
 mongoose
   .connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
