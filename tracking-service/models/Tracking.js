@@ -1,8 +1,8 @@
 const mongoose = require('mongoose');
 
 const TrackingSchema = new mongoose.Schema({
-  deliveryId: { type: mongoose.Schema.Types.ObjectId, required: true, index: true },
-  driverId:   { type: mongoose.Schema.Types.ObjectId, required: true, index: true },
+  deliveryId: { type: String, required: true, index: true },
+  driverId:   { type: String, required: true, index: true },
   location: {
     type: {
       type: String,
