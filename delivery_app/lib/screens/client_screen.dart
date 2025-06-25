@@ -83,7 +83,7 @@ class _ClientScreenState extends State<ClientScreen> {
                     controller: controllerDestino,
                     decoration: const InputDecoration(
                       labelText: 'Endereço de Destino',
-                      hintText: 'Ex: Rua Amazonas, 250, Contagem',
+                      hintText: 'Ex: Rua A Jacarepaguá, 150, Rio de Janeiro',
                     ),
                   ),
                   DropdownButtonFormField<String>(
@@ -229,7 +229,7 @@ class _ClientScreenState extends State<ClientScreen> {
                     itemCount: _entregas.length,
                     itemBuilder: (context, index) {
                       final e = _entregas[index];
-                      final cor = e.status == 'EM_ROTA' ? Colors.orange : Colors.grey;
+                      final cor = e.status == 'EM_PROCESSAMENTO' ? Colors.orange : Colors.grey;
 
                       return Card(
                         color: Colors.purple.shade50,

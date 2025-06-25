@@ -50,16 +50,26 @@ class ClientHistoryScreen extends StatelessWidget {
                 onPressed: () async {
                   final dados = await TrackingService().buscarUltimaLocalizacao(pedido.id.toString());
 
-                  if (dados != null && dados['latitude'] != null && dados['longitude'] != null) {
-                    final lat = dados['latitude'];
-                    final lon = dados['longitude'];
-                    final rastreioUrl = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lon");
+                  if (dados != null &&
+                      dados['location'] != null &&
+                      dados['location']['coordinates'] != null &&
+                      dados['location']['coordinates'].length == 2) {
+                    final coords = dados['location']['coordinates'];
+                    final double lng = double.tryParse(coords[0].toString()) ?? 0.0;
+                    final double lat = double.tryParse(coords[1].toString()) ?? 0.0;
 
-                    if (await canLaunchUrl(rastreioUrl)) {
-                      await launchUrl(rastreioUrl);
+                    if (lat != 0.0 && lng != 0.0) {
+                      final rastreioUrl = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lng");
+                      if (await canLaunchUrl(rastreioUrl)) {
+                        await launchUrl(rastreioUrl);
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Não foi possível abrir a última localização.')),
+                        );
+                      }
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Não foi possível abrir a última localização.')),
+                        const SnackBar(content: Text('Localização indisponível.')),
                       );
                     }
                   } else {

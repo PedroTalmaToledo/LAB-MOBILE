@@ -7,7 +7,11 @@ import 'screens/client_screen.dart';
 import 'screens/driver_screen.dart';
 import 'screens/entregas_realizadas_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/register_screen.dart';
+import 'screens/splash_screen.dart';
+
 import 'services/notification_service.dart';
+import 'services/auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,8 +19,11 @@ void main() async {
   final isDark = prefs.getBool('tema_escuro') ?? false;
 
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => NotificationService(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => NotificationService()),
+        ChangeNotifierProvider(create: (_) => AuthService()),
+      ],
       child: MyApp(isDark: isDark),
     ),
   );
@@ -61,12 +68,15 @@ class _MyAppState extends State<MyApp> {
         brightness: Brightness.dark,
       ),
       debugShowCheckedModeBanner: false,
+      initialRoute: '/splash',
       routes: {
+        '/splash': (context) => const SplashScreen(),
         '/': (context) => const LoginScreen(),
         '/cliente': (context) => const ClientScreen(),
         '/motorista': (context) => const DriverScreen(),
         '/entregues': (context) => const EntregasRealizadasScreen(),
         '/config': (context) => SettingsScreen(onToggleTheme: _toggleTheme),
+        '/register': (context) => const RegisterScreen(),
       },
     );
   }

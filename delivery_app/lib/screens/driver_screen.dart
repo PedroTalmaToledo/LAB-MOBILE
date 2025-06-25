@@ -1,3 +1,4 @@
+import 'dart:ffi';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -97,6 +98,7 @@ class _DriverScreenState extends State<DriverScreen> {
     try {
       final pos = await Geolocator.getCurrentPosition();
 
+      // Envia localização para o tracking
       await TrackingService().enviarLocalizacao(
         deliveryId: pedido.id.toString(),
         driverId: 'motorista_demo',
@@ -104,33 +106,76 @@ class _DriverScreenState extends State<DriverScreen> {
         longitude: pos.longitude,
       );
 
+      // Atualiza status para EM_PROCESSAMENTO
       await DeliveryService().atualizarStatus(pedido.id!, 'EM_PROCESSAMENTO');
       _showSnackbar('Entrega de ${pedido.cliente} aceita.');
 
-      // Obter rota otimizada com proteção contra travamento
-      try {
-        final pontos = await DeliveryService()
-            .obterRota(pedido.origem, pedido.destino)
-            .timeout(const Duration(seconds: 10));
+      // Obter rota otimizada
+      final pontos = await DeliveryService().obterRota(
+        pedido.origem,
+        pedido.destino,
+        pedido.id!,
+      );
+      print("$pontos/TESTEEEEEEE");
 
-        if (pontos.isNotEmpty) {
-          final polyline = Polyline(
-            polylineId: PolylineId("rota_${pedido.id}"),
-            color: Colors.blue,
-            width: 4,
-            points: pontos,
-          );
-          setState(() {
-            _polylines = {polyline};
-          });
-        }
-      } catch (e) {
-        debugPrint('Erro ao buscar rota otimizada: $e');
-        _showSnackbar('Falha ao obter rota, mas entrega foi aceita.');
+      if (pontos.isNotEmpty) {
+        // Criar polyline da rota
+        final polyline = Polyline(
+          polylineId: PolylineId("rota_${pedido.id}"),
+          color: Colors.blue,
+          width: 4,
+          points: pontos,
+        );
+
+        // Marcadores de origem e destino
+        final origemCoords = pontos.first;
+        final destinoCoords = pontos.last;
+
+        final origemMarker = Marker(
+          markerId: MarkerId("origem_${pedido.id}"),
+          position: origemCoords,
+          infoWindow: InfoWindow(title: 'Origem'),
+        );
+
+        final destinoMarker = Marker(
+          markerId: MarkerId("destino_${pedido.id}"),
+          position: destinoCoords,
+          infoWindow: InfoWindow(title: 'Destino'),
+        );
+
+        setState(() {
+          _polylines = {polyline};
+          _markers = {origemMarker, destinoMarker};
+        });
+
+        // Centraliza o mapa entre os dois pontos
+        final bounds = LatLngBounds(
+          southwest: LatLng(
+            origemCoords.latitude < destinoCoords.latitude
+                ? origemCoords.latitude
+                : destinoCoords.latitude,
+            origemCoords.longitude < destinoCoords.longitude
+                ? origemCoords.longitude
+                : destinoCoords.longitude,
+          ),
+          northeast: LatLng(
+            origemCoords.latitude > destinoCoords.latitude
+                ? origemCoords.latitude
+                : destinoCoords.latitude,
+            origemCoords.longitude > destinoCoords.longitude
+                ? origemCoords.longitude
+                : destinoCoords.longitude,
+          ),
+        );
+
+        _mapController?.animateCamera(
+          CameraUpdate.newLatLngBounds(bounds, 80),
+        );
       }
 
       await _carregarPedidos();
     } catch (e) {
+      print(e);
       _showSnackbar('Erro ao aceitar entrega: $e');
     }
   }
@@ -198,8 +243,10 @@ class _DriverScreenState extends State<DriverScreen> {
                   flex: 1,
                   child: GoogleMap(
                     initialCameraPosition: CameraPosition(
-                      target: LatLng(_currentPosition!.latitude,
-                          _currentPosition!.longitude),
+                      target: LatLng(
+                        _currentPosition!.latitude,
+                        _currentPosition!.longitude,
+                      ),
                       zoom: 15,
                     ),
                     onMapCreated: (controller) => _mapController = controller,
