@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
 class AuthService extends ChangeNotifier {
-  static const String baseUrl = 'http://10.0.2.2:5001/auth';
+  static const String baseUrl = 'https://auth-service-818291685347.southamerica-east1.run.app/auth';
 
   String? _token;
   ThemeMode _themeMode = ThemeMode.light;
