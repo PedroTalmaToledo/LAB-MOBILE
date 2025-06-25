@@ -1,0 +1,8 @@
+# Arquivos ignorados
+.git
+.gitignore
+node_modules
+*.log
+
+# Permitir a pasta target (remover se já existir `target/`)
+#target/
